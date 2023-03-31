@@ -1,8 +1,8 @@
 with 
 customers as 
     (select * 
-    from mart.f_sales_new 
-    join mart.d_calendar on f_sales_new.date_id = d_calendar.date_id
+    from mart.f_sales 
+    join mart.d_calendar on f_sales.date_id = d_calendar.date_id
     where week_of_year = DATE_PART('week', '{{ds}}'::DATE)), 
 new_customers as 
     (select customer_id

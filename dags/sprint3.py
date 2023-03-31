@@ -134,11 +134,6 @@ with DAG(
         python_callable=get_increment,
         op_kwargs={'date': business_dt})
 
-    alter_user_order = PostgresOperator(
-        task_id='alter_table_status',
-        postgres_conn_id=postgres_conn_id,
-        sql="sql/alter_table_status.sql")   
-
     upload_user_order_inc = PythonOperator(
         task_id='upload_user_order_inc',
         python_callable=upload_data_to_staging,
@@ -169,12 +164,19 @@ with DAG(
         parameters={"date": {business_dt}}
     )
 
+    update_f_customer_retention = PostgresOperator(
+        task_id='update_customer_retention',
+        postgres_conn_id=postgres_conn_id,
+        sql="sql/mart.f_customer_retention.sql",
+        parameters={"date": {business_dt}}
+    )
+
     (
             generate_report
             >> get_report
             >> get_increment
-            >> alter_user_order
             >> upload_user_order_inc
             >> [update_d_item_table, update_d_city_table, update_d_customer_table]
             >> update_f_sales
+            >> update_f_customer_retention
     )
