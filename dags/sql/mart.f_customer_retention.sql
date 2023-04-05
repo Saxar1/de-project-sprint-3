@@ -1,3 +1,5 @@
+delete from mart.f_customer_retention 
+where period_id = DATE_PART('week', '{{ds}}'::DATE);
 with 
 customers as 
     (select * 
@@ -18,44 +20,28 @@ refunded_customers as
     from customers 
     where status = 'refunded' 
 	group by customer_id),
-new_customers_agregate as 
-	(select
-	 	c.week_of_month as period_id,
-	 	c.item_id,
-	 	count(nc.customer_id) as new_customers_count,
-	 	sum(c.payment_amount) as new_customers_revenue
-	from new_customers as nc
-	join customers as c using(customer_id)
-	group by c.week_of_month, c.item_id),
-returning_customers_agregate as 
-	(select
-	 	c.week_of_month as period_id,
-	 	c.item_id,
-	 	count(retc.customer_id) as returning_customers_count,
-	 	sum(c.payment_amount) as returning_customers_revenue
-	from returning_customers as retc
-	join customers as c using(customer_id)
-	group by c.week_of_month, c.item_id),
-refunded_customers_agregate as 
-	(select
-	 	c.week_of_month as period_id,
-	 	c.item_id,
-	 	count(refc.customer_id) as refunded_customers_count,
-	 	sum(c.payment_amount) as customers_refunded
-	from refunded_customers as refc
-	join customers as c using(customer_id)
-	group by c.week_of_month, c.item_id),
-period_item as
-	(select 
-	 	week_of_month as period_id,
-	 	item_id
-	 from customers)
-insert into mart.f_customer_retention 
-select *
-from new_customers_agregate
-left join returning_customers_agregate using(period_id, item_id)
-left join refunded_customers_agregate using(period_id, item_id);
-
-
-
- 
+nc_revenue as 
+	(select customer_id, payment_amount
+	from customers
+	right join new_customers using(customer_id)),
+retc_revenue as
+	(select customer_id, payment_amount
+	from customers
+	right join returning_customers using(customer_id))
+insert into mart.f_customer_retention
+select 
+	c.week_of_year as period_id,
+	c.item_id,
+	count(nc.customer_id) as new_customers_count,
+	count(retc.customer_id) as returning_customers_count,
+	count(refc.customer_id) as refunded_customers_count,
+	sum(ncr.payment_amount) as new_customers_revenue,
+	sum(retcr.payment_amount) as returning_customers_revenue,
+	count(refc.customer_id) as customers_refunded
+from customers as c
+left join new_customers as nc using(customer_id)
+left join returning_customers as retc using(customer_id)
+left join refunded_customers as refc using(customer_id)
+left join nc_revenue as ncr using(customer_id)
+left join retc_revenue as retcr using(customer_id)
+group by item_id, week_of_year

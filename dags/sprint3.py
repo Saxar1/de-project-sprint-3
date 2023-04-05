@@ -108,7 +108,7 @@ args = {
     'email': ['student@example.com'],
     'email_on_failure': False,
     'email_on_retry': False,
-    'retries': 0
+    'retries': 1
 }
 
 business_dt = '{{ ds }}'
@@ -120,6 +120,7 @@ with DAG(
         catchup=True,
         start_date=datetime.today() - timedelta(days=7),
         end_date=datetime.today() - timedelta(days=1),
+        max_active_runs=1,
 ) as dag:
     generate_report = PythonOperator(
         task_id='generate_report',

@@ -1,3 +1,5 @@
+delete from mart.f_sales as fs
+where date_id IN (select date_id from mart.d_calendar as dc where dc.date_actual = '{{ds}}');
 insert into mart.f_sales (date_id, item_id, customer_id, city_id, quantity, payment_amount, status)
 select dc.date_id, item_id, customer_id, city_id, quantity,
 	   case
